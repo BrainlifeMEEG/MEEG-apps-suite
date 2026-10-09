@@ -15,7 +15,7 @@ The `bl` CLI has no subcommand for this (`bl app` only has `query`/`run`/`wait`)
 
 ## Auth
 
-A cached login token lives at `~/.config/brainlife.io/.jwt` (from a prior `bl login`). Read it into a shell variable for the `Authorization: Bearer` header — never print its contents or put it in a file the user didn't ask for. If a request comes back `HTTP 500` with `{"message":"UnauthorizedError: jwt expired"}`, stop and tell the user to run `bl login` interactively themselves — you cannot log in on their behalf, and there's nothing else to retry until they do.
+Follow "Authentication" in `agent-instructions.md` (token location, expired-JWT handling, admins-only edit rights). An app whose `_canedit` is false can't be updated from this account; report that to the user instead of attempting the PUT.
 
 ## Procedure, given an app name/directory and a target branch
 

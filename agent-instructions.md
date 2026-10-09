@@ -1,5 +1,9 @@
 # Brainlife.io MNE Apps - Instructions
 
+This is the single source of conventions for every app in this repo. The agents in
+`.claude/agents/` enforce or apply these rules and link back to the sections here rather than
+restating them; when a rule changes, change it here only.
+
 ## Project Overview
 
 This is a collection of Brainlife.io applications for neuroimaging data processing, specifically focused on MEG/EEG data analysis using the MNE-Python library. Each folder contains a separate app with a standardized structure for processing neuroimaging data through containerized Python scripts.
@@ -17,7 +21,7 @@ Every app typically contains:
 
 1. **`main`** - Bash script that:
    - Sets up PBS/SLURM job parameters
-   - Executes the Python script via Singularity container
+   - Executes the Python script via Singularity container (image: see "Docker images" below)
    - The Python entrypoint invoked must be named exactly `main.py` — no alternate entrypoint filenames are permitted
 
 2. **`main.py`** - Main Python script that:
@@ -39,11 +43,7 @@ Every app typically contains:
    - Required for every app that exposes user-configurable parameters; apps with no parameters may omit it, but must still call `load_config()` with sane defaults
    - A `config.json.example` alone is never sufficient — if example values are meant to be used for testing, `config.json` itself must also exist
 
-4. **`README.md`** - Documentation including:
-   - App description and functionality
-   - Input/output specifications
-   - Citations and acknowledgments: "Hayashi, S., Caron, B.A., Heinsfeld, A.S. et al. brainlife.io: a decentralized and open-source cloud platform to support neuroscience research. Nat Methods 21, 809–813 (2024). https://doi.org/10.1038/s41592-024-02237-2"
-   - Brainlife.io badges and metadata
+4. **`README.md`** - Must follow the "App README policy" section below.
 
 5. **`brainlife_utils/`** - Shared utility library containing:
    - must be a real git submodule: git submodule add git@github.com:BrainlifeMEEG/brainlifeMEEG_utils.git brainlife_utils. A plain copied `brainlife_utils/` directory (no `.git`) is non-compliant — it cannot receive upstream fixes and will drift
@@ -62,7 +62,7 @@ Every app typically contains:
 3. Output: Processed data files, reports, and visualizations
 
 ### Container Usage
-- Apps use Brainlife.io Docker images.
+- Apps use the images listed under "Docker images" below.
 - Executed via Singularity for HPC compatibility
 
 ### Output Structure
@@ -75,6 +75,21 @@ Every app typically contains:
 - JSON configurations with parameter validation
 - `brainlife_utils.config_utils` provides None-value conversion for config parameters
 
+## Docker images
+
+Use the lean `brainlifemeeg/*` images; the older `brainlife/mne:*`, `brainlife/mne-freesurfer:*` and
+third-party personal images are being phased out.
+
+| Image | Use for |
+|---|---|
+| `docker://brainlifemeeg/mne:1.12.1` | Default for every app that only needs MNE-Python |
+| `docker://brainlifemeeg/mne-freesurfer:1.12.1-7.4.1` | Apps that call FreeSurfer binaries or need Qt/pyvista offscreen 3D rendering (coreg, forward, source-estimate, label-timecourse, make-bem, source-space) |
+| `docker://brainlifemeeg/mne-fsaverage:1.12.1` | Apps that need the `fsaverage` template subject baked in (gedai, gedai-epo) |
+
+Image sources live in `docker-mne/`, `docker-mne-freesurfer/` and `docker-mne-fsaverage/`; read
+the README there before adding or bumping an image. Extra Python packages not in the image are
+`pip install --user`-ed at run time from `main` (meegflow-app and gedai pattern), not baked into a new image.
+
 ## App Categories
 
 ### Data Conversion Apps (`*2mne`)
@@ -83,11 +98,14 @@ Every app typically contains:
 
 ### Preprocessing Apps (`filter-*`, `*-filter`)
 - Apply temporal filters
-- Examples: `filter-raw`, `notch-filter`, `temporal-filtering`
+- Examples: `filter-raw`, `filter-epo`, `filter-chpi`
 
 ### Projector computation for artifact removal (`ICA-*`, `SSP-*`)
 - Independent Component Analysis and Signal Space Projection
 - Examples: `ICA-fit`, `ICA-apply`, `SSP-projectors-ECG`
+
+### Denoising (`gedai*`)
+- Examples: `gedai`, `gedai-epo`
 
 ### Epoching and Events (`epoch*`, `events*`)
 - Event detection and epoch extraction
@@ -95,17 +113,20 @@ Every app typically contains:
 
 ### Analysis Apps (`psd`, `peak-*`)
 - Spectral analysis and feature extraction
-- Examples: `psd`, `peak-amplitude`, `detect-alpha-peak`
+- Examples: `psd`, `peak-amplitude`, `peak-frequency`
+
+### Source modelling
+- Examples: `make-bem`, `coreg`, `source-space`, `forward`, `noise-covariance`, `inverse-operator`, `source-estimate`, `label-timecourse`
 
 ## Development Guidelines
 
 ### When Creating New Apps:
 1. Follow the standard directory structure
-2. Use appropriate Brainlife.io Docker images
+2. Use an image from "Docker images"
 3. Implement proper error handling and validation
 4. Generate MNE Reports for quality control
 5. Create informative `product.json` outputs
-6. Include comprehensive documentation
+6. Write the README to the "App README policy"
 
 ### Code Conventions:
 - Import MNE-Python and standard scientific libraries
@@ -178,9 +199,73 @@ Rules:
 - Every processing parameter read from `config.json` must be validated (type/range/allowed values) before use.
 - Output `.fif` files must load successfully with the corresponding MNE reader (`mne.io.read_raw_fif`, `mne.read_epochs`, etc.) before the app exits successfully.
 
+## App README policy
+
+Every app's `README.md` follows this structure, in this order. It documents what the code
+actually does; take parameter names, types and defaults from `main.py` and `config.json`, never
+from memory.
+
+1. **Title** — `# <Human-readable app name>` (e.g. "Filter Raw MEG/EEG Data"), not the repo name and
+   never another app's title copied over.
+2. **Badges**, directly under the title:
+   - Run on Brainlife.io, linking the app's DOI:
+     `[![Run on Brainlife.io](https://img.shields.io/badge/Brainlife-bl.app.NNN-blue.svg)](https://doi.org/10.25663/brainlife.app.NNN)`.
+     If the app has no DOI yet, link `https://brainlife.io/app/<app_id>` instead.
+3. `## Description` — one or two paragraphs on what the app does and which MNE function/method it
+   uses, then "The app generates:" with a bullet list of outputs.
+4. `## Inputs` — one bullet per input, named by its **config key** and datatype:
+   ``- **`mne`** (`neuro/meeg/mne/raw`): continuous data to filter (required)``.
+   Never name an input by a filename like "meg.fif".
+5. `## Outputs` — one bullet per output, with its path and datatype, including
+   `out_report/report.html` and figures when the app produces them.
+6. `## Configuration Parameters` — a table with one row per config key that `main.py` reads:
+   `| key | type | default | description |`. Keys, types and defaults must match `main.py` and
+   `config.json`.
+7. `## Usage` — `### Running on Brainlife.io` (numbered steps) and `### Local Testing`. All shell
+   commands go inside a fenced code block; a `# comment` outside a fence renders as a stray H1.
+8. Optional: `## Technical Details`, `## Limitations`, `## Pipeline Position`.
+9. `## Authors` — `- Name (https://github.com/handle)`.
+10. `## Citations` — always:
+    - Hayashi, S., Caron, B.A., Heinsfeld, A.S. et al. brainlife.io: a decentralized and open-source cloud platform to support neuroscience research. Nat Methods 21, 809–813 (2024). https://doi.org/10.1038/s41592-024-02237-2
+    - Gramfort, A. et al. MEG and EEG data analysis with MNE-Python. Front. Neurosci. 7, 267 (2013). https://doi.org/10.3389/fnins.2013.00267
+    - plus the paper for the specific algorithm, where one applies.
+11. `## Funding Acknowledgement` — the standard sentence plus these six badges:
+    ```markdown
+    [![NSF-BCS-1734853](https://img.shields.io/badge/NSF_BCS-1734853-blue.svg)](https://nsf.gov/awardsearch/showAward?AWD_ID=1734853)
+    [![NSF-BCS-1636893](https://img.shields.io/badge/NSF_BCS-1636893-blue.svg)](https://nsf.gov/awardsearch/showAward?AWD_ID=1636893)
+    [![NSF-ACI-1916518](https://img.shields.io/badge/NSF_ACI-1916518-blue.svg)](https://nsf.gov/awardsearch/showAward?AWD_ID=1916518)
+    [![NSF-IIS-1912270](https://img.shields.io/badge/NSF_IIS-1912270-blue.svg)](https://nsf.gov/awardsearch/showAward?AWD_ID=1912270)
+    [![NIH-NIBIB-R01EB029272](https://img.shields.io/badge/NIH_NIBIB-R01EB029272-green.svg)](https://grantome.com/grant/NIH/R01-EB029272-01)
+    [![NIH-NIBIB-R01EB030896](https://img.shields.io/badge/NIH_NIBIB-R01EB030896-green.svg)](https://grantome.com/grant/NIH/R01-EB030896-01)
+    ```
+12. `## License` — `Copyright (c) <year> MEEG Brainlife team. Licensed under AGPL-3.0, see [license.txt](license.txt).`
+    Apps wrapping a differently-licensed library (e.g. gedai, PolyForm Noncommercial) state that
+    license here instead and keep the notice block near the top.
+
+Not allowed:
+- a second, trailing `## Citation` block repeating the Hayashi reference;
+- the 2023 arXiv/PMC version of the Hayashi citation;
+- the old "Documentation" style (a numbered "Input file is / Output files are" list instead of sections);
+- repo names, branch names or docker images that don't match the app's current `main` and registration.
+
+### README checklist
+
+The auditor reports, and the inventory sheet's `Readme` column records, a README as compliant
+only if every item passes:
+
+1. H1 title present, not the repo name, not another app's name.
+2. Run-on-Brainlife badge present, linking a DOI or a brainlife.io app id.
+3. Sections `Description`, `Inputs`, `Outputs`, `Configuration Parameters` (unless the app reads no config keys), `Usage`, `Authors`, `Citations`, `Funding Acknowledgement`, `License` all present, in that order.
+4. Every config key read in `main.py` appears in the Configuration Parameters table or as an input.
+5. Citations include Hayashi 2024 (Nat Methods) and Gramfort 2013.
+6. All six funding badges present, including both NIH grants.
+7. No duplicate trailing `## Citation`, no 2023 Hayashi citation, no stray H1 outside the title.
+8. Any docker image named in the README matches `main`.
+
 ## Repository Hygiene
 
 - When an app is renamed or retired, remove its entry from the root `.gitmodules` — do not leave orphaned submodule declarations pointing at a directory that no longer exists.
+- Superseded reports and status documents go to `docs/archive/`, not the repo root.
 
 ## CLI use and Brainlife documentation
 
@@ -196,6 +281,14 @@ Rules:
 - Login: `bl login --ttl 7` (the `--ttl` is the token lifetime in days).
 - Source: https://github.com/brainlife/cli — install/usage docs per subcommand at https://brainlife.io/docs/cli/ (`install`, `upload`, `download`, `app`, `group`, `update`).
 - CLI coverage is intentionally limited — it wraps the Warehouse API for common tasks (upload/download datasets, submit/query apps, manage projects). For anything it doesn't support, fall back to direct API calls.
+- `bl app` has only `query`/`run`/`wait`: no create, register or update subcommand. There is no `rule` subcommand at all. App registration (`POST app`), app updates such as changing `github_branch` (`PUT app/:id`) and pipeline rules (`POST rule`, `PUT rule/order/:projectId`) all go through the Warehouse API directly.
+
+### Authentication
+
+- A cached login token lives at `~/.config/brainlife.io/.jwt` (written by `bl login`). Read it into a shell variable for the `Authorization: Bearer` header; never print it or copy it into another file.
+- Warehouse reads of public records (apps, datatypes) need no token. Writes always do, and `_canedit` in a read only shows up when a token is sent.
+- If a request returns `HTTP 500` with `{"message":"UnauthorizedError: jwt expired"}`, stop and ask the user to run `bl login` themselves; an agent cannot log in on their behalf.
+- Edit rights on an app come only from membership in its `admins` list, never from being its creator. This project's convention is `admins: ["670", "720", "1348"]`.
 
 ### Direct API calls
 

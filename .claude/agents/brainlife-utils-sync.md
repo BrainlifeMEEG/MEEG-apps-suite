@@ -19,7 +19,7 @@ Before bumping, diff the target ref's public API against what's currently used:
 - Flag any app whose usage would break; do not silently paper over it by editing app code unless the fix is unambiguous (e.g. a straight rename with no semantic change) — otherwise report it and let the user decide.
 
 **3. Finding apps missing brainlife_utils entirely**
-Cross-reference against `COMPLIANCE_AUDIT.md` at the repo root (§2, "brainlife_utils missing or not a real submodule") for the last known list, but re-verify live rather than trusting a stale report — check `test -d <app>/brainlife_utils/.git` per app. These apps are out of scope for a version bump (nothing to bump) — report them separately as candidates for `brainlife-app-fixer` to onboard onto the framework.
+Check live with `test -d <app>/brainlife_utils/.git` (or `test -f`, since a submodule's `.git` can be a file) per app. These apps are out of scope for a version bump (nothing to bump) — report them separately as candidates for `brainlife-app-fixer` to onboard onto the framework.
 
 ## Rules
 

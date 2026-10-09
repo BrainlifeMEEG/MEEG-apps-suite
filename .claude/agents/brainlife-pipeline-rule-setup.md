@@ -15,7 +15,7 @@ A ready-made helper already implements this end to end, including replicating th
 
 ## Auth
 
-A cached login token lives at `~/.config/brainlife.io/.jwt` (from a prior `bl login`), which the helper script reads automatically. If a call fails with an expired-JWT error, stop and tell the user to run `bl login` themselves — you cannot log in on their behalf.
+Follow "Authentication" in `agent-instructions.md`. The helper script reads the cached token automatically.
 
 ## Procedure
 

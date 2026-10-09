@@ -15,7 +15,7 @@ A DOI (`10.25663/brainlife.app.<n>`) is assigned separately by the platform, not
 
 ## Auth
 
-A cached login token lives at `~/.config/brainlife.io/.jwt` (from a prior `bl login`). Read it into a shell variable for the `Authorization: Bearer` header — never print its contents or put it in a file the user didn't ask for. If a request comes back `HTTP 500` with `{"message":"UnauthorizedError: jwt expired"}`, stop and tell the user to run `bl login` interactively themselves.
+Follow "Authentication" in `agent-instructions.md`.
 
 ## Critical gotcha #1: `admins` is unrecoverable if omitted
 

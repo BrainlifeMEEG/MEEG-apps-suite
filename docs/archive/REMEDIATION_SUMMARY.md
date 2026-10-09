@@ -1,3 +1,11 @@
+> **Archived 2026-10-09.** Historical record of the July 2026 compliance pass;
+> `COMPLIANCE_AUDIT.md` no longer exists. Current rules live in `agent-instructions.md`.
+> Items from this file still open as of 2026-10-09:
+> - `filter-epo/main.py:60` reads `config['epo']`.
+> - `psd` and `epoch-psd` still call the deprecated `psd_welch`/`psd_multitaper`/`plot_psd`.
+> - `make-watershed-bem/main.py:42` reads only `config['output']`.
+> - `require_config_keys` is used by 35 of 60 apps.
+
 # Remediation Summary — COMPLIANCE_AUDIT.md fixes
 
 Everything catalogued in `COMPLIANCE_AUDIT.md` has been addressed. One commit per app (plus a parent-repo pointer bump), so any regression is individually bisectable/revertable. This file documents what changed and — more importantly — what was deliberately **not** changed and needs a human decision.
