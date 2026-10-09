@@ -261,3 +261,9 @@
 [submodule "label-timecourse"]
 	path = label-timecourse
 	url = https://github.com/BrainlifeMEEG/label-timecourse.git
+[submodule "bad-channels"]
+	path = bad-channels
+	url = git@github.com:BrainlifeMEEG/bad-channels.git
+[submodule "mark-bad-epo"]
+	path = mark-bad-epo
+	url = git@github.com:BrainlifeMEEG/mark-bad-epo.git
